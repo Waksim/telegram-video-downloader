@@ -10,21 +10,60 @@ echo "Автоматическая установка"
 echo "========================================"
 echo ""
 
-# Проверка, что скрипт не запущен от root
+# Проверка, что скрипт запущен от root
 if [ "$EUID" -eq 0 ]; then
-    echo "❌ Не запускайте этот скрипт от root!"
-    echo "   Используйте: ./install.sh"
-    exit 1
+    echo "⚠️  Скрипт запущен от root!"
+    echo ""
+    echo "Рекомендуется создать отдельного пользователя для безопасности."
+    echo ""
+    read -p "Создать нового пользователя 'telegrambot'? (y/n): " CREATE_USER
+
+    if [ "$CREATE_USER" = "y" ] || [ "$CREATE_USER" = "Y" ]; then
+        # Создание пользователя
+        USERNAME="telegrambot"
+        useradd -m -s /bin/bash "$USERNAME"
+        echo "✓ Пользователь '$USERNAME' создан"
+        echo ""
+        echo "⚠️  Установите пароль для пользователя:"
+        passwd "$USERNAME"
+
+        # Копируем скрипт в домашнюю папку пользователя
+        cp "$0" /home/$USERNAME/install.sh
+        chmod +x /home/$USERNAME/install.sh
+
+        echo ""
+        echo "✓ Теперь переключитесь на нового пользователя:"
+        echo "  su - $USERNAME"
+        echo "  ./install.sh"
+        exit 0
+    else
+        echo ""
+        echo "⚠️  Продолжаем установку от root (не рекомендуется для продакшена)"
+        echo "   Нажмите Enter для продолжения или Ctrl+C для отмены"
+        read
+
+        # Устанавливаем рабочую директорию в /opt
+        INSTALL_DIR="/opt/telegram-downloader"
+        mkdir -p "$INSTALL_DIR"
+        cd "$INSTALL_DIR"
+    fi
+fi
+
+# Определяем команду sudo (пустая для root, sudo для обычного пользователя)
+if [ "$EUID" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
 fi
 
 # Обновление системы
 echo "📦 Обновление системы..."
-sudo apt update
-sudo apt upgrade -y
+$SUDO apt update
+$SUDO apt upgrade -y
 
 # Установка зависимостей
 echo "📦 Установка зависимостей..."
-sudo apt install -y python3 python3-pip python3-venv git wget curl
+$SUDO apt install -y python3 python3-pip python3-venv git wget curl
 
 # Проверка версии Python
 PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
@@ -96,7 +135,7 @@ if [ "$SETUP_SYSTEMD" = "y" ] || [ "$SETUP_SYSTEMD" = "Y" ]; then
     WORKING_DIR=$(pwd)
 
     # Создание service файла с правильными путями
-    sudo tee /etc/systemd/system/telegram-downloader.service > /dev/null << EOF
+    $SUDO tee /etc/systemd/system/telegram-downloader.service > /dev/null << EOF
 [Unit]
 Description=Telegram Video Downloader
 After=network.target
@@ -115,7 +154,7 @@ WantedBy=multi-user.target
 EOF
 
     # Перезагрузка systemd
-    sudo systemctl daemon-reload
+    $SUDO systemctl daemon-reload
 
     echo "✓ Systemd service создан"
     echo ""

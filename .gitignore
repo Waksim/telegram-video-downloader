@@ -10,6 +10,10 @@ downloaded_videos/
 # Файл прогресса
 download_progress.json
 
+# Google Drive credentials (НЕ КОММИТИТЬ!)
+token.json
+credentials.json
+
 # Сессии Telegram
 *.session
 *.session-journal
@@ -34,3 +38,11 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Документация (кроме README)
+DEPLOYMENT.md
+PUBLISH.md
+QUICK_START.md
+START_HERE.md
+INSTALL_AS_ROOT.md
+ROOT_INSTALL_COMMANDS.txt

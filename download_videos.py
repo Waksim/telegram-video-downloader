@@ -1,15 +1,17 @@
 """
-Скрипт для скачивания видео из Telegram супергруппы с возможностью возобновления.
+Скрипт для скачивания видео из Telegram супергруппы и загрузки на Google Drive.
 """
 import os
 import json
 import asyncio
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl.types import MessageMediaDocument, MessageMediaPhoto
 from dotenv import load_dotenv
+from google_drive_uploader import GoogleDriveUploader
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -23,9 +25,8 @@ SESSION_STRING = os.getenv('SESSION_STRING')
 CHAT_ID = -1002406265529  # 2406265529 с префиксом -100
 TOPIC_ID = 4  # ID топика из ссылки
 
-# Папка для сохранения видео
-DOWNLOAD_DIR = Path('downloaded_videos')
-DOWNLOAD_DIR.mkdir(exist_ok=True)
+# Настройки Google Drive
+GOOGLE_DRIVE_FOLDER = 'Собесы'  # Имя папки на Google Drive
 
 # Файл для отслеживания прогресса
 PROGRESS_FILE = 'download_progress.json'
@@ -75,13 +76,21 @@ class DownloadProgress:
 
 
 async def download_videos():
-    """Основная функция для скачивания видео."""
+    """Основная функция для скачивания видео и загрузки на Google Drive."""
 
     # Инициализация клиента с сессией из строки
     client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 
     # Инициализация отслеживания прогресса
     progress = DownloadProgress(PROGRESS_FILE)
+
+    # Инициализация Google Drive
+    try:
+        drive_uploader = GoogleDriveUploader()
+        drive_uploader.set_folder(GOOGLE_DRIVE_FOLDER)
+    except Exception as e:
+        print(f"❌ Ошибка инициализации Google Drive: {e}")
+        return
 
     try:
         await client.connect()
@@ -129,7 +138,7 @@ async def download_videos():
                     # Проверяем, был ли уже скачан
                     if progress.is_downloaded(message.id):
                         skipped_count += 1
-                        print(f"⏭ [{video_count}] Пропускаем уже скачанное видео (ID: {message.id})")
+                        print(f"⏭ [{video_count}] Пропускаем уже загруженное видео (ID: {message.id})")
                         continue
 
                     # Формируем имя файла
@@ -139,31 +148,57 @@ async def download_videos():
                     else:
                         filename += ".mp4"
 
-                    filepath = DOWNLOAD_DIR / filename
+                    # Определяем MIME-тип
+                    mime_type = 'video/mp4'
+                    if message.video:
+                        mime_type = message.video.mime_type or 'video/mp4'
+                    elif hasattr(message.media, 'document'):
+                        mime_type = message.media.document.mime_type or 'video/mp4'
 
-                    # Скачиваем видео
+                    # Скачиваем видео во временный файл и загружаем на Google Drive
                     try:
-                        print(f"\n📥 [{video_count}] Скачиваем видео (ID: {message.id})...")
+                        print(f"\n📥 [{video_count}] Обрабатываем видео (ID: {message.id})...")
                         print(f"   Дата: {message.date}")
+                        file_size_mb = 0
                         if message.file:
-                            print(f"   Размер: {message.file.size / (1024*1024):.2f} MB")
+                            file_size_mb = message.file.size / (1024*1024)
+                            print(f"   Размер: {file_size_mb:.2f} MB")
 
-                        await message.download_media(file=str(filepath))
+                        # Создаем временный файл
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=filename[filename.rfind('.'):]) as temp_file:
+                            temp_filepath = temp_file.name
 
-                        progress.mark_downloaded(message.id)
-                        downloaded_count += 1
+                        try:
+                            # Скачиваем видео во временный файл
+                            await message.download_media(file=temp_filepath)
 
-                        print(f"✓ Сохранено: {filepath}")
+                            # Загружаем на Google Drive
+                            drive_uploader.upload_to_folder(
+                                filepath=temp_filepath,
+                                filename=filename,
+                                mime_type=mime_type,
+                                file_size_mb=file_size_mb
+                            )
+
+                            progress.mark_downloaded(message.id)
+                            downloaded_count += 1
+
+                            print(f"✓ Видео успешно загружено на Google Drive")
+
+                        finally:
+                            # Удаляем временный файл
+                            if os.path.exists(temp_filepath):
+                                os.remove(temp_filepath)
 
                     except Exception as e:
-                        print(f"❌ Ошибка скачивания (ID: {message.id}): {e}")
+                        print(f"❌ Ошибка обработки видео (ID: {message.id}): {e}")
 
         print(f"\n{'='*60}")
         print(f"✓ Завершено!")
         print(f"  Всего найдено видео: {video_count}")
-        print(f"  Скачано в этот раз: {downloaded_count}")
+        print(f"  Загружено на Google Drive в этот раз: {downloaded_count}")
         print(f"  Пропущено (уже были): {skipped_count}")
-        print(f"  Папка с видео: {DOWNLOAD_DIR.absolute()}")
+        print(f"  Папка на Google Drive: {GOOGLE_DRIVE_FOLDER}")
         print(f"{'='*60}")
 
     except KeyboardInterrupt:
@@ -180,7 +215,7 @@ async def download_videos():
 def main():
     """Точка входа в программу."""
     print("="*60)
-    print("📹 Скачиватель видео из Telegram супергруппы")
+    print("📹 Загрузчик видео из Telegram на Google Drive")
     print("="*60)
 
     # Проверка конфигурации
