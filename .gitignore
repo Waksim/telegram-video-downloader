@@ -1,0 +1,36 @@
+# Переменные окружения
+.env
+
+# Скачанные файлы
+downloaded_videos/
+*.mp4
+*.mov
+*.avi
+
+# Файл прогресса
+download_progress.json
+
+# Сессии Telegram
+*.session
+*.session-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

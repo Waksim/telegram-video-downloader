@@ -1,0 +1,15 @@
+[Unit]
+Description=Telegram Video Downloader
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME/download_interview
+Environment="PATH=/home/YOUR_USERNAME/download_interview/venv/bin"
+ExecStart=/home/YOUR_USERNAME/download_interview/venv/bin/python download_videos.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
