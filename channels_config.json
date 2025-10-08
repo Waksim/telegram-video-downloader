@@ -10,7 +10,31 @@
       "chat_id": -1002406265529,
       "topic_id": 8,
       "folder_path": "Собесы/Скрининги",
-      "description": "Screening interviews"
+      "description": "Скрининги"
+    },
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 155,
+      "folder_path": "Собесы/Финалка",
+      "description": "Финалка"
+    },
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 91,
+      "folder_path": "Собесы/System Design",
+      "description": "System Design"
+    },
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 373,
+      "folder_path": "Собесы/Валютная удалёнка",
+      "description": "Валютная удалёнка"
+    },
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 382,
+      "folder_path": "Собесы/Разборы Собеседований",
+      "description": "Разборы Собеседований"
     }
   ]
 }
