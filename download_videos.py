@@ -332,15 +332,15 @@ def parse_telegram_url(url: str) -> Optional[Dict]:
     Парсит Telegram URL и извлекает chat_id и topic_id.
 
     Args:
-        url: URL вида https://t.me/c/2406265529/8/602
+        url: URL вида https://t.me/c/2406265529/8/602 или https://t.me/c/2406265529/8
 
     Returns:
         Словарь с chat_id и topic_id или None
     """
     import re
 
-    # Паттерн для приватных чатов: https://t.me/c/CHAT_ID/TOPIC_ID/...
-    pattern = r't\.me/c/(\d+)/(\d+)'
+    # Паттерн для приватных чатов: https://t.me/c/CHAT_ID/TOPIC_ID/MESSAGE_ID или https://t.me/c/CHAT_ID/TOPIC_ID
+    pattern = r't\.me/c/(\d+)/(\d+)(?:/\d+)?'
     match = re.search(pattern, url)
 
     if match:
