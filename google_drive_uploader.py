@@ -34,18 +34,22 @@ class GoogleDriveUploader:
         creds = Credentials.from_authorized_user_file(self.token_file)
         self.service = build('drive', 'v3', credentials=creds)
 
-    def get_or_create_folder(self, folder_name: str) -> str:
+    def get_or_create_folder(self, folder_name: str, parent_id: Optional[str] = None) -> str:
         """
         Получает ID папки или создает новую, если не существует.
 
         Args:
             folder_name: имя папки
+            parent_id: ID родительской папки (опционально)
 
         Returns:
             ID папки
         """
         # Поиск существующей папки
         query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        if parent_id:
+            query += f" and '{parent_id}' in parents"
+
         results = self.service.files().list(
             q=query,
             spaces='drive',
@@ -64,6 +68,9 @@ class GoogleDriveUploader:
             'name': folder_name,
             'mimeType': 'application/vnd.google-apps.folder'
         }
+
+        if parent_id:
+            file_metadata['parents'] = [parent_id]
 
         folder = self.service.files().create(
             body=file_metadata,
@@ -108,14 +115,23 @@ class GoogleDriveUploader:
 
         return file.get('id')
 
-    def set_folder(self, folder_name: str):
+    def set_folder(self, folder_path: str):
         """
         Устанавливает папку для загрузки файлов.
+        Поддерживает вложенные папки через разделитель '/'.
 
         Args:
-            folder_name: имя папки
+            folder_path: путь к папке (например, 'Собесы/NLP' или 'Собесы')
         """
-        self.folder_id = self.get_or_create_folder(folder_name)
+        folders = folder_path.split('/')
+        parent_id = None
+
+        for folder_name in folders:
+            folder_name = folder_name.strip()
+            if folder_name:
+                parent_id = self.get_or_create_folder(folder_name, parent_id)
+
+        self.folder_id = parent_id
 
     def upload_to_folder(self, filepath: str, filename: str,
                         mime_type: str = 'video/mp4', file_size_mb: float = 0) -> str:

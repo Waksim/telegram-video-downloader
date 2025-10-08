@@ -1,0 +1,16 @@
+{
+  "channels": [
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 4,
+      "folder_path": "Собесы/NLP",
+      "description": "NLP interviews"
+    },
+    {
+      "chat_id": -1002406265529,
+      "topic_id": 602,
+      "folder_path": "Собесы/Скрининги",
+      "description": "Screening interviews"
+    }
+  ]
+}
