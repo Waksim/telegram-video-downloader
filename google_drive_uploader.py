@@ -133,6 +133,35 @@ class GoogleDriveUploader:
 
         self.folder_id = parent_id
 
+    def file_exists_in_folder(self, filename: str) -> bool:
+        """
+        Проверяет, существует ли файл с заданным именем в текущей папке.
+
+        Args:
+            filename: имя файла для проверки
+
+        Returns:
+            True если файл существует, False иначе
+        """
+        if not self.folder_id:
+            return False
+
+        query = f"name='{filename}' and '{self.folder_id}' in parents and trashed=false"
+
+        try:
+            results = self.service.files().list(
+                q=query,
+                spaces='drive',
+                fields='files(id, name)',
+                pageSize=1
+            ).execute()
+
+            items = results.get('files', [])
+            return len(items) > 0
+        except Exception as e:
+            print(f"⚠ Ошибка проверки существования файла: {e}")
+            return False
+
     def upload_to_folder(self, filepath: str, filename: str,
                         mime_type: str = 'video/mp4', file_size_mb: float = 0) -> str:
         """

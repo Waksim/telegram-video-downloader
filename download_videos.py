@@ -187,18 +187,26 @@ async def download_channel_videos(client, chat_id: int, topic_id: int,
             if is_video:
                 video_count += 1
 
-                # Проверяем, был ли уже скачан
-                if progress.is_downloaded(chat_id, topic_id, message.id):
-                    skipped_count += 1
-                    print(f"⏭ [{video_count}] Пропускаем уже загруженное видео (ID: {message.id})")
-                    continue
-
                 # Формируем имя файла
                 filename = f"video_{message.id}"
                 if message.file and message.file.ext:
                     filename += message.file.ext
                 else:
                     filename += ".mp4"
+
+                # Проверяем, был ли уже скачан (по локальной базе)
+                if progress.is_downloaded(chat_id, topic_id, message.id):
+                    skipped_count += 1
+                    print(f"⏭ [{video_count}] Пропускаем уже загруженное видео (ID: {message.id}) - найдено в локальной базе")
+                    continue
+
+                # Проверяем, существует ли файл на Google Drive
+                if drive_uploader.file_exists_in_folder(filename):
+                    skipped_count += 1
+                    print(f"⏭ [{video_count}] Пропускаем видео (ID: {message.id}) - файл '{filename}' уже есть на Google Drive")
+                    # Добавляем в локальную базу, чтобы в следующий раз проверка была быстрее
+                    progress.mark_downloaded(chat_id, topic_id, message.id)
+                    continue
 
                 # Определяем MIME-тип
                 mime_type = 'video/mp4'
